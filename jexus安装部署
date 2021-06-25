@@ -1,0 +1,74 @@
+
+
+1.安装jexus独立版的命令是：
+curl https://jexus.org/release/x64/install.sh|sudo sh 
+
+2./var/www/default/  用vi编写一个简单的 index.aspx，仅如下两句：
+
+<%@Page Language="C#"%>
+
+<%=DateTime.Now.ToString()%> 
+
+
+3.启动：sudo ./jws start
+重启：sudo ./jws restart
+停止：sudo ./jws stop
+
+4.添加为系统服务，随系统启动
+
+cd /etc/init.d/
+vi jws
+
+按i编辑模式，粘贴下面内容
+
+ 
+
+#!/bin/bash
+#chkconfig: 2345 80 05
+#description:jws
+#
+. /etc/rc.d/init.d/functions
+case "$1" in
+
+start)
+echo "Jexus Start.."
+/usr/jexus/jws start
+;;
+
+stop)
+echo "Jexus Stop.."
+/usr/jexus/jws stop
+;;
+
+restart)
+echo "Jexus Restart"
+/usr/jexus/jws restart
+;;
+
+status)
+/usr/jexus/jws status
+;;
+
+*)
+exit 1
+;;
+
+esac
+exit $RETVAL
+
+按ESC后，输入:wq保存文件
+把这个脚本作为"服务"加入
+chmod 766 jws
+chkconfig --add jws
+
+至此，JEXUS已跟随系统启动，可以reboot一下试试看
+
+ vim /etc/rc.local添加一行/usr/jexus/jws start
+ 
+ 
+ 查看端口占用情况的命令：
+ lsof -i
+ lsof -i:80
+ netstat -apn|grep 80   
+ 
+

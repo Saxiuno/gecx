@@ -1,0 +1,153 @@
+[Desktop Entry]
+Type=Application
+Exec=/data/home/gecx/db_backup/sqlbackupclient.sh
+Terminal=false
+Comment=autoStart.
+Comment[zh_CN]=autoStart
+GenericName=AutoStartItems
+GenericName[zh_CN]=autoStart
+Name=autoStart
+Name[zh_CN]=autoStart
+StartupNotify=true
+Icon=/data/home/gecx/db_backup/icon.png
+
+
+autoStart.desktop
+
+ps -ef | grep java
+
+====================================================================================================================================
+
+
+ mkdir /usr/local/java
+chmod +x java
+
+1,tar -zxvf jdk-10.0.2_linux-x64_bin.tar.gztar 
+
+2, vi ~/.bashrc   添加如下
+
+export JAVA_HOME=/usr/local/java/jdk的文件夹名
+export JRE_HOME=${JAVA_HOME}/jre  
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib  
+export PATH=${JAVA_HOME}/bin:$PATH
+
+3，配置立即生效  
+  source ~/.bashrc
+
+4, java -version
+
+5,如果没有的话建立软连接
+
+
+sudo ln -s /usr/local/java/bin/java  /usr/local/bin
+
+sudo  ln -s /usr/local/java/bin/javac   / usr/local/bin
+
+
+======================================================================================================================================
+
+vi /etc/rc.local
+
+#!/bin/bash
+# rc.local config file created by use
+
+export JAVA_HOME=/usr/local/java/jdk的文件夹名
+export JRE_HOME=${JAVA_HOME}/jre  
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib  
+export PATH=${JAVA_HOME}/bin:$PATH
+
+把你需要执行的命令写在这里
+
+java -jar bakup.jar
+
+exit 0
+
+保存后，sudo chmod +x /etc/rc.local
+
+
+==========================================================================================================================================
+uos 服务器版
+
+Ａ:”输入命令：
+dpkg -P deepin-license-activator-mini
+apt -y install dde #中途有弹框的都选yes
+systemctl set-default runlevel5.target
+systemctl isolate runlevel5.target
+
+apt install -f
+
+===========================================================================================================================================
+Ubuntu/Deepin系统：
+安装命令：sudo dpkg -i 文件名.deb
+（例如：sudo dpkg -i sunloginclient-10.1.1.28779-amd64.deb）
+*卸载命令（2步）：
+sudo dpkg -l | grep sunlogin
+sudo dpkg -r sunloginclient
+
+安装报错：尝试sudo /usr/local/sunlogin/bin/sunloginclient启动程序
+使用ldd /usr/local/sunlogin/bin/sunloginclient 查看依赖缺失问题
+
+查找现有lib包
+可以使用find / -name libncurses*查找
+找到后使用ln -s /usr/lib/源依赖包位置 /usr/lib/指向依赖包位置
+
+apt -f install
+apt-get update
+apt-get install libappindicator3-1
+apt --fix-broken install
+
+重新安装命令：sudo dpkg -i 文件名.deb
+（例如：sudo dpkg -i sunloginclient-10.1.1.28779-amd64.deb）
+
+==============================================================
+gecx1057@163.com
+UAQMGIOJLTJJHDCL
+=================================================
+-,vi /etc/mail.rc
+
+set smtp=smtp.163.com
+set smtp-auth=login
+set smtp-auth-user=gecx1057@163.com
+set smtp-auth-password=UAQMGIOJLTJJHDCL
+set from=gecx1057@163.com
+
+===============================================
+
+二,apt-get install msmtp mutt
+vi ~/.msmtprc
+
+account gecx1057 
+
+host smtp.163.com 
+from gecx1057@163.com
+user gecx1057
+password UAQMGIOJLTJJHDCL 
+
+auth login    
+
+tls off   
+account default:gecx1057
+
+logfile ~/.msmtp.log 
+
+==========================
+touch ~/.msmtp.log 
+
+==========================
+
+vi ~/.muttrc
+
+
+set sendmail="/usr/bin/msmtp"  
+set use_from=yes
+
+set realname="gecx1057@163.com"
+
+set from="gecx1057@163.com"
+set envelope_from="yes"
+set editor="vi"
+
+set copy=no 
+====================================================
+
+0 8 * * 1 echo "" | mutt -s "aaa" youxiang

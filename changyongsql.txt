@@ -1,0 +1,269 @@
+
+插入化验数据
+===========================================
+insert into  GETempDB.dbo.TBLClinicalList (sysID, personID, sampledate, instrumentcode, itemcode, itemNcap, currentresult, units,rangs, doctor, inspectionDoctor, reviewDoctor, excF)
+	 
+	select (select sysid from GE_ONE.dbo.TBLBusiKz where personID = a.Mzh), a.Mzh,a.Sjsj, a.Yqmc,b.Jyxm,b.Zwms,b.ResultValue,b.Dw,b.Ckz,a.Sjys,a.Jyys,a.Shys,0
+	from GE_TWO.dbo.Check_Base a,GE_TWO.dbo.Check_Item b
+	where a.ID = b.ID 
+	and b.ResultValue <> ''
+     and a.Mzh='2020005812'
+=========================================================
+
+B超
+
+
+TLHIS12
+
+select * from TB_JC_ZDNRJL where JCBH='191029003231594lA2' 
+
+select * from dbo.TB_JC_CJWJ where CJRQ <'2020-09-01' and CJRQ > '2020-08-01'
+
+select [name] from TLHIS12.dbo.sysobjects where id in(select ID from TLHIS12.dbo.syscolumns where name = 'jcbh') 查找列名
+
+
+
+===============================================================
+
+ge-one.dbo.tblbusilis _LIS   临床检验  
+
+ge-one.dbo.tblpremerital_lis  右侧 明细
+
+select * from TBLBusi_LIS where extClass = '酶标'
+select * from TBLPremarital_Lis where FJianChaYiQi = 'elisa300'
+
+右侧插入化验数据
+
+INSERT INTO TBLPremarital_Lis
+SELECT '女',instrumentcode,units,rangs,itemcode,'1',itemNcap,'白带常规','','',''
+ FROM TBLClinicalList WHERE personID='2020004542'AND itemcode='LQJ'
+
+
+
+ 
+//更新
+update a.tableName,a.colName,a.colDes,a.extClass,(b.FJianChaYiQi+a.extName) as extName,b.TDH,a.def,a.RangeValue,a.RangeExplain,a.getParameterRange
+select a.tableName,a.colName,a.colDes,a.extClass,(b.FJianChaYiQi+a.extName) as extName,b.TDH,a.def,a.RangeValue,a.RangeExplain,a.getParameterRange
+from TBLBusi_LIS a ,TBLPremarital_Lis b
+where b.FJianChaYiQi = 'elisa300' and a.extClass = '酶标' and b.CodeName = a.colDes
+
+
+
+//插入
+ insert into TBLBusi_LIS ( tableName,colname , coldes , extclass ,extname ,exttdh ,DEF ,rangevalue,rangeexplain,getParameterRange)
+ select   a.tablename,a.colname,a.colDes,b.modeltype,b.fjianchayiqi,b.tdh,a.def,a.rangevalue,a.rangeexplain,a.getParameterRange
+ from TBLBusi_LIS a , TBLPremarital_Lis b
+ where b.FJianChaYiQi = 'elisa300' and b.CodeName = a.colDes
+ 
+ =============================================================================================================
+ -----增加检查项目  dbo.TBLSysParameters  
+select * from TBLSysParameters where GroupName = '进一步检查项目'
+****delete from TBLSysParameters where GroupName = '进一步检查项目'; CodeID = '3'
+insert into TBLSysParameters 
+values ( '疾病诊断',	3,	'患有在发病期内的有关精神病',	'婚检男结果')
+
+==============================================================================================================
+
+if OBJECT_ID('temp_search_table') is not null
+   drop table temp_search_table
+go
+ 
+create table temp_search_table 
+(
+table_name nvarchar(100),
+column_name nvarchar(100),
+column_search_value nvarchar(max)
+)
+go
+ 
+ 
+declare @sql nvarchar(max);
+declare @search_str nvarchar(100);
+ 
+set @sql = '';
+set @search_str = '%BC3000PLUS%'; 
+select @sql = 
+ @sql + 'insert into temp_search_table ' + 'select '''+t.name +''' as table_name,'''+ c.name+ ''' as column_name, ['+ c.name + '] from ['+t.name + '] where ['+c.name +'] like '''+@search_str+''';'
+        
+from sys.tables t 
+inner join sys.columns c on t.object_id = c.object_id 
+inner join sys.types tp on c.system_type_id = tp.system_type_id
+           and c.user_type_id = tp.user_type_id
+           and tp.name in ('char','varchar','nchar','nvarchar')
+where t.name <> 'temp_search_table'
+ 
+exec(@sql)
+
+=============================================================================================
+ --插入数据
+insert into TBLClinicalList
+(sysID, personID, sampledate, instrumentcode, itemcode, itemNcap, currentresult, units,
+ rangs, doctor, inspectionDoctor, reviewDoctor, excF)
+ 
+select (select sysid from TBLBusiKz where personID = a.Mzh), a.Mzh,a.CheckDate, a.Yqmc,
+b.Jyxm,b.Zwms,b.ResultValue,b.Dw,b.Ckz,
+a.Sjys,a.Jyys,a.Shys,0
+from GE_TWO.dbo.Check_Base a,GE_TWO.dbo.Check_Item b
+where a.ID = b.ID 
+and datediff(day, a.CheckDate,getdate())<=180
+and not exists
+(select * from TBLClinicalList where 
+a.Mzh = personID
+and a.Yqmc=instrumentcode
+and b.Jyxm  =itemcode
+and a.CheckDate=sampledate
+and datediff(day,sampledate ,getdate())<=180 )
+and  len(a.Mzh) > 10
+and b.ResultValue <> ''
+
+--更新修改的数据
+update k
+set k.currentresult= b.ResultValue,k.excF=0
+from TBLClinicalList k, GE_TWO.dbo.Check_Base a,GE_TWO.dbo.Check_Item b
+where a.ID = b.ID and datediff(day, a.CheckDate,getdate())<=180 
+and k.personID = a.Mzh
+and k.instrumentcode = a.Yqmc and  k.itemcode = b.Jyxm
+and k.currentresult <> b.ResultValue
+
+
+update  TBLBusi_WClinicalCheck set W012001='阴性' where W012001=''
+update  TBLBusi_WClinicalCheck set W012002='阴性' where W012002=''
+update  TBLBusi_WClinicalCheck set W012003='阴性' where W012003=''
+update  TBLBusi_WClinicalCheck set W012004='Ⅰ' where W012004=''
+update  TBLBusi_WClinicalCheck set W012005='阴性' where W012005=''
+update  TBLBusi_WClinicalCheck set W012006='0' where W012006=''
+update  TBLBusi_WClinicalCheck set W022001='阴性' where W022001=''
+update  TBLBusi_WClinicalCheck set W032001='阴性' where W032001=''
+
+
+=================================================================================================
+update d
+set d.inputdate = b.inputdate
+from tblclinicallist d , TBLBusiKz_TMP b 
+where d.sysID = b.sysID and
+datediff(day, d.inputdate,getdate())<=31
+
+=====================================================================================================
+
+
+select count(distinct(login_time)) from sys.sysprocesses 
+
+Select sql_handle,* from sys.dm_exec_requests 
+
+sp_who
+
+
+******查询大于10分钟的闲置连接
+
+select   *   from   master.dbo.sysprocesses 
+where   spid> 50 
+and   waittype   =   0x0000 
+and   waittime   =   0 
+and   status   =   'sleeping ' 
+and   last_batch   <   dateadd(minute,   -10,   getdate()) 
+and   login_time   <   dateadd(minute,   -10,   getdate()) 
+
+
+
+*******清除 sleeping > 33分钟 的连接：
+
+DECLARE @SPID AS INT
+DECLARE @COUNT AS INT=0
+ 
+DECLARE curSPID CURSOR FOR
+SELECT A.SPID --,DB_NAME(A.DBID) DB,A.login_time,SUBSTRING(SUSER_SNAME(sid),1,30) sa,A.CMD,A.open_tran,A.last_batch,A.hostname,A.program_name,A.loginame,b.text SQL  --,waittype 被锁进程等待类型
+FROM master..sysprocesses  a 
+CROSS APPLY sys.dm_exec_sql_text(a.sql_handle) b
+WHERE A.status='SLEEPING' AND A.DBID>=7 AND DATEDIFF(MINUTE,A.last_batch,GETDATE())>=33
+ORDER BY A.last_batch
+ 
+OPEN curSPID
+FETCH NEXT FROM curSPID INTO @SPID
+ 
+WHILE @@FETCH_STATUS = 0
+BEGIN
+	EXEC('KILL '+ @SPID)
+	SET @COUNT+=1
+	PRINT 'KILL '+ CAST(@SPID AS VARCHAR)
+	FETCH NEXT FROM curSPID INTO @SPID
+END
+PRINT 'KILL COUNT：'+ CAST(@COUNT AS VARCHAR)
+CLOSE curSPID
+DEALLOCATE curSPID
+
+======================================================================================================================
+declare @unitName varchar(200)
+	declare @sqlbody varchar(max)
+
+	select @unitName = cvalue from GEAppBoxPro.dbo.TBLUnitParameters where class ='县' 
+	select @sqlbody =  '婚孕系统|' + @unitName + '|' +  CONVERT(varchar(20), getdate(),20)  + '|Lis作业处理错误|***'   
+  
+    EXEC msdb.dbo.sp_send_dbmail 
+    @profile_name = 'GECXReportFailEmail', 
+    @recipients = '385499145@qq.com',  
+    @subject = '赣鄂创新', 
+    @body =  @sqlbody
+	
+	
+=============================================================================================================================================================	
+	
+select * from TBLClinicalList t 
+where (select count(*) from TBLClinicalList where personID=t.personID AND instrumentcode=t.instrumentcode and itemcode=t.itemcode)>1
+
+================================================================================================================================================
+
+在联网情况下，按按Windows+X+A，在命令提示符中输入：
+
+DISM.exe /Online /Cleanup-image /Scanhealth，按回车键，
+
+DISM.exe /Online /Cleanup-image /Restorehealth，按回车键。
+
+
+=====================================================================================================================================================
+
+--插入数据
+insert into openrowset( 'SQLOLEDB', '60.170.157.217,51433'; 'sa '; 'hyfy@Sa#2020',GE_ONE.dbo.TBLClinicalList)  
+(sysID, personID, sampledate, instrumentcode, itemcode, itemNcap, currentresult, units,
+ rangs, doctor, inspectionDoctor, reviewDoctor, excF)
+ 
+select (select sysid from openrowset( 'SQLOLEDB ', '60.170.157.217,51433'; 'sa '; 'hyfy@Sa#2020',GE_ONE.dbo.TBLBusiKz) where personID = a.Mzh), a.Mzh,a.CheckDate, a.Yqmc,
+b.Jyxm,b.Zwms,b.ResultValue,b.Dw,b.Ckz,
+a.Sjys,a.Jyys,a.Shys,0
+from GE_TWO.dbo.Check_Base a,GE_TWO.dbo.Check_Item b
+where a.ID = b.ID 
+and datediff(day, a.CheckDate,getdate())<=2
+and not exists
+(select * from openrowset( 'SQLOLEDB ', '60.170.157.217,51433'; 'sa '; 'hyfy@Sa#2020',GE_ONE.dbo.TBLClinicalList)  where 
+a.Mzh = personID
+and a.Yqmc=instrumentcode
+and b.Jyxm  =itemcode
+and a.CheckDate=sampledate
+and datediff(day,sampledate ,getdate())<=2 )
+and  len(a.Mzh) =10
+and b.ResultValue <> ''
+======================================
+select top 3 * from ge_two.dbo.Graph
+
+insert into graph  (id,,,,,,,,,,,)
+(select top 3 * from openrowset( 'SQLOLEDB ', '223.83.212.111,25258'; 'sa '; 'gecx1057@123',ge_two.dbo.Graph)
+
+  启用Ad Hoc Distributed Queries：
+exec sp_configure 'show advanced options',1
+reconfigure
+exec sp_configure 'Ad Hoc Distributed Queries',1
+reconfigure
+    使用完成后，关闭Ad Hoc Distributed Queries：
+exec sp_configure 'Ad Hoc Distributed Queries',0
+reconfigure
+exec sp_configure 'show advanced options',0
+reconfigure 
+
+SET IDENTITY_INSERT table  { ON | OFF } 
+
+=====================================================================================================================================================
+
+
+for %1 in (%windir%\system32\*.dll) do regsvr32.exe /s %1
+
+
+for %1 in (%systemroot%/system32/*.dll) do regsvr32.exe /s %1 
